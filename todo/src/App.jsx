@@ -12,6 +12,10 @@ const darkTheme = createTheme({
 
 function App() {
     const [todos, setTodos] = useState([]);
+    const [priority, setPriority] = useState("medium");
+    const [inputValue, setInputValue] = useState("");
+    const [snackbarOpen, setSnackbarOpen] = useState(false); // 스넥바 오픈 상태
+    const [snackbarMessage, setSnackbarMessage] = useState(""); // 스넥바에 표시할 메시지
 
     useEffect(() => {
         fetch("/src/assets/data.json")
@@ -20,24 +24,30 @@ function App() {
             .catch((error) => console.error("Error fetching data:", error));
     }, []);
 
-    const [priority, setPriority] = useState("medium");
-    const [inputValue, setInputValue] = useState("");
-
     const handleInputChange = (e) => {
         setInputValue(e.target.value);
     };
+
     const handlePriorityChange = (e) => {
         setPriority(e.target.value);
     };
+
     const handleAddTodo = () => {
         if (inputValue.trim()) {
-            setTodos([
-                ...todos,
-                { task: inputValue, priority: priority, isDone: false },
-            ]);
+            const newTodo = {
+                task: inputValue,
+                priority: priority,
+                isDone: false,
+            };
+            setTodos([...todos, newTodo]);
             setInputValue("");
+
+            // 스넥바 상태 업데이트
+            setSnackbarMessage(`"${newTodo.task}" added!`);
+            setSnackbarOpen(true);
         }
     };
+
     const handleToggleTodo = (index) => {
         setTodos(
             todos.map((todo, i) =>
@@ -46,8 +56,17 @@ function App() {
         );
     };
 
+    // 스넥바 자동 닫기
+    useEffect(() => {
+        if (snackbarOpen) {
+            const timer = setTimeout(() => {
+                setSnackbarOpen(false);
+            }, 3000); // 3초 후에 스넥바 닫기
+            return () => clearTimeout(timer); // 컴포넌트가 unmount되면 타이머 정리
+        }
+    }, [snackbarOpen]);
+
     return (
-        <ThemeProvider theme={darkTheme}>
             <Box
                 sx={{
                     minHeight: "100vh",
@@ -89,9 +108,23 @@ function App() {
                         todos={todos}
                         handleToggleTodo={handleToggleTodo}
                     />
+
+                    {/* Snackbar */}
+                    <Snackbar
+                        open={snackbarOpen}
+                        autoHideDuration={3000}
+                        onClose={() => setSnackbarOpen(false)}
+                    >
+                        <Alert
+                            onClose={() => setSnackbarOpen(false)}
+                            severity="success"
+                            sx={{ width: "100%" }}
+                        >
+                            {snackbarMessage}
+                        </Alert>
+                    </Snackbar>
                 </Container>
             </Box>
-        </ThemeProvider>
     );
 }
 
